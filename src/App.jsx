@@ -1,13 +1,17 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useMemo, useRef, useState } from 'react'
 import products from './data/products.json'
 import sizeCharts from './data/sizeCharts.json'
 import { toCm, useBodyInputs } from './hooks/useBodyInputs'
-import { computeFit } from './lib/fit'
+import { BODY_CHART_EASE, computeFit } from './lib/fit'
+import { cutOf } from './lib/products'
 import FitFinder from './components/FitFinder'
 import BuyBox from './components/shop/BuyBox'
 import ProductCard from './components/shop/ProductCard'
 import ProductGallery from './components/shop/ProductGallery'
 import { AnnouncementBar, ShopFooter, ShopHeader, Toast } from './components/shop/ShopChrome'
+
+// three.js only downloads when someone opens the live try-on.
+const LiveTryOn = lazy(() => import('./components/shop/LiveTryOn'))
 
 // A product's chart as the shopper currently sees it: catalogue data plus any edits made in
 // the finder's "Product data" panel.
@@ -42,6 +46,8 @@ export default function App() {
   const [bag, setBag] = useState([])
   const [toast, setToast] = useState(null)
   const [sizeHint, setSizeHint] = useState(null)
+  const [galleryView, setGalleryView] = useState('front')
+  const [tryOnOpen, setTryOnOpen] = useState(false)
   const toastTimer = useRef(null)
 
   const product = products.find((p) => p.id === productId)
@@ -73,6 +79,7 @@ export default function App() {
   const openProduct = (id) => {
     setProductId(id)
     setSizeHint(null)
+    setGalleryView(profileSaved ? 'onyou' : 'front')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -89,9 +96,49 @@ export default function App() {
     setSizeByProduct((s) => ({ ...s, [product.id]: size }))
     setProfileSaved(true)
     setFinderOpen(false)
+    setGalleryView('onyou')
     setSizeHint(null)
     say(`Size ${size} selected. Your fit now shows on every product.`)
   }
+
+  const pickSize = (s) => {
+    setSizeByProduct((m) => ({ ...m, [product.id]: s }))
+    setSizeHint(null)
+  }
+
+  // Try-on preview of the selected (else recommended) size, once there's a fit profile.
+  const previewSize = shownFit?.sizes.find((s) => s.size === selectedSize) ?? shownFit?.sizes[shownFit.recommendedIndex]
+  const onYou =
+    shownFit?.recommended && previewSize
+      ? {
+          preview: {
+            product,
+            color,
+            cut: cutOf(product),
+            body: inputs.body,
+            heightCm: toCm(inputs.heightCm),
+            sizeResult: previewSize,
+            row: { length: toCm(chart.rows.find((r) => String(r.size).trim() === previewSize.size)?.length) },
+          },
+          sizes: shownFit.sizes.map((s) => s.size),
+          selectedSize: previewSize.size,
+          recommended: shownFit.recommended,
+          onSize: pickSize,
+        }
+      : null
+
+  // Live try-on: the selected size, else the recommendation, else the middle of the run.
+  const sizes = chart.rows.map((r) => String(r.size).trim()).filter(Boolean)
+  const tryOnSize = selectedSize ?? fit?.recommended ?? sizes[Math.floor(sizes.length / 2)]
+  const tryOnGarment = useMemo(() => {
+    const row = chart.rows.find((r) => String(r.size).trim() === tryOnSize) ?? {}
+    // A body chart lists the body a size is cut for; the garment is that plus its ease.
+    const extra = chart.kind === 'body' ? BODY_CHART_EASE : 0
+    const chest = toCm(row.chest) + extra
+    const hem = Number.isFinite(toCm(row.hip)) ? toCm(row.hip) + extra : chest
+    return { chest, hem, length: Number.isFinite(toCm(row.length)) ? toCm(row.length) : 70 }
+  }, [chart.rows, chart.kind, tryOnSize])
+  const closeTryOn = useCallback(() => setTryOnOpen(false), [])
 
   const closeFinder = useCallback(() => setFinderOpen(false), [])
   const updateChart = (patch) =>
@@ -111,17 +158,22 @@ export default function App() {
         </nav>
 
         <div className="grid gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
-          <ProductGallery key={product.id} product={product} color={color} />
+          <ProductGallery
+            product={product}
+            color={color}
+            view={galleryView}
+            onView={setGalleryView}
+            onYou={onYou}
+            onFindSize={() => setFinderOpen(true)}
+            onTryOn={() => setTryOnOpen(true)}
+          />
           <BuyBox
             product={product}
             color={color}
             onColor={(id) => setColorByProduct((c) => ({ ...c, [product.id]: id }))}
             chart={chart}
             selectedSize={selectedSize}
-            onSize={(s) => {
-              setSizeByProduct((m) => ({ ...m, [product.id]: s }))
-              setSizeHint(null)
-            }}
+            onSize={pickSize}
             fit={shownFit}
             onFindSize={() => setFinderOpen(true)}
             onAdd={addToBag}
@@ -169,6 +221,23 @@ export default function App() {
         result={fit}
         onApply={applyFit}
       />
+      {tryOnOpen && (
+        <Suspense fallback={<div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950 text-sm text-slate-400">Loading try-on…</div>}>
+        <LiveTryOn
+          product={product}
+          color={color}
+          onColor={(id) => setColorByProduct((c) => ({ ...c, [product.id]: id }))}
+          sizes={sizes}
+          size={tryOnSize}
+          recommended={shownFit?.recommended}
+          onSize={pickSize}
+          garment={tryOnGarment}
+          bodyChest={Number.isFinite(inputs.body?.chest?.cm) ? inputs.body.chest.cm : 96}
+          cut={cutOf(product)}
+          onClose={closeTryOn}
+        />
+        </Suspense>
+      )}
       <Toast message={toast} />
     </>
   )

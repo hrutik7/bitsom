@@ -21,7 +21,7 @@ export function useBodyInputs() {
   // Raw silhouette estimate from body.js, what the person wears in the photo, and any
   // values the user typed over the corrected estimate.
   const [photoEstimate, setPhotoEstimate] = useState(null)
-  const [worn, setWornState] = useState('regular')
+  const [worn, setWornState] = useState('oversized')
   const [photoEdits, setPhotoEdits] = useState({})
 
   const onEstimate = useCallback((est) => {

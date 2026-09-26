@@ -8,6 +8,7 @@ export function Icon({ name, className = 'h-5 w-5' }) {
     swap: 'M4 8h14l-4-4M20 16H6l4 4',
     shield: 'M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6l-7-3Z',
     check: 'm5 12 4 4 10-10',
+    camera: 'M4 8h3l2-2h6l2 2h3v11H4V8Zm8 9a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z',
   }
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

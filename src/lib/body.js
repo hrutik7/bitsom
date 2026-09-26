@@ -1,6 +1,7 @@
 // Photo → body measurements. PoseLandmarker places the rows, ImageSegmenter gives the
 // silhouette (geometry in silhouette.js), height sets the scale. Pure: no UI, no React.
 import { FilesetResolver, ImageSegmenter, PoseLandmarker } from '@mediapipe/tasks-vision'
+import { DEPTH_RATIO, ellipsePerimeter } from './geometry'
 import { LM, measureSilhouette } from './silhouette'
 
 const BASE = import.meta.env.BASE_URL
@@ -8,7 +9,6 @@ const WASM_PATH = `${BASE}wasm`
 const POSE_MODEL = `${BASE}models/pose_landmarker_full.task`
 const SEGMENTER_MODEL = `${BASE}models/selfie_segmenter.tflite`
 
-const DEPTH_RATIO = 0.7 // torso depth ÷ width, for the ellipse
 // Scale modes. Full body: head top → floor spans the whole height. Torso (half-body
 // framing, no ankles): shoulder line → hip line spans ~30% of height, a population average.
 const TORSO_HEIGHT_FRACTION = 0.3
@@ -144,10 +144,6 @@ function analyse(image, models) {
 }
 
 // ── Public API ─────────────────────────────────────────────────────────────────
-
-function ellipsePerimeter(a, b) {
-  return Math.PI * (3 * (a + b) - Math.sqrt((3 * a + b) * (a + 3 * b)))
-}
 
 const withUncertainty = (value, fraction) => ({
   value: Math.round(value * 10) / 10,

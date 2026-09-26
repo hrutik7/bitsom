@@ -1,29 +1,9 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { cameraErrorMessage, cameraSupportError, stopStream } from '../lib/camera'
 import { capsulePath, smoothPath } from '../lib/svgPath'
 
 const COUNTDOWN_S = 3
 const GUIDE_TEXT = 'stand 3m back · arms away from body · head to knees in frame'
-const BLOCKED = 'Camera blocked — use Upload instead'
-const INSECURE = 'Camera needs https or localhost — use Upload'
-const NOT_FOUND = 'No camera found — check it is switched on, or use Upload'
-
-const stopStream = (stream) => stream?.getTracks().forEach((t) => t.stop())
-
-function cameraErrorMessage(err) {
-  switch (err?.name) {
-    case 'NotAllowedError':
-    case 'PermissionDeniedError':
-    case 'SecurityError':
-      return BLOCKED
-    case 'NotFoundError':
-    case 'DevicesNotFoundError':
-    case 'OverconstrainedError':
-      return NOT_FOUND
-    default:
-      return `Camera could not start${err?.message ? ` (${err.message})` : ''} — use Upload instead`
-  }
-}
-
 /**
  * Live preview → 3s countdown → one still frame as a JPEG blob. The stream only lives
  * while this component is mounted: unmounting (capture, tab switch, leaving the photo
@@ -40,8 +20,9 @@ export default function CameraCapture({ onCapture, onError }) {
   const [canFlip, setCanFlip] = useState(false)
 
   useEffect(() => {
-    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
-      onError(INSECURE)
+    const unsupported = cameraSupportError()
+    if (unsupported) {
+      onError(unsupported)
       return
     }
     let cancelled = false

@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { cutOf } from '../../lib/products'
 
 // Original tee mockups and prints, drawn in SVG so the shop needs no image assets.
 const ACCENT = '#ff4a1c'
@@ -157,16 +158,15 @@ const PRINTS = {
   },
 }
 
-const CUT_BY_TYPE = { 'Oversized Tee': 'oversized', 'Regular Fit Tee': 'regular', 'Fitted Baby Tee': 'fitted' }
-
 /**
  * @param product from products.json
  * @param color   one of product.colors
  * @param view    'front' | 'back' | 'detail' (zoom on the front print)
+ * @param printOnly just the front print on a transparent background (a 3D texture)
  */
-export default function TeeArt({ product, color, view = 'front', className = '' }) {
+export default function TeeArt({ product, color, view = 'front', className = '', printOnly = false }) {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '')
-  const cut = CUT_BY_TYPE[product.type] ?? 'regular'
+  const cut = cutOf(product)
   const back = view === 'back'
   const dark = luminance(color.hex) < 0.4
   const ink = dark ? PAPER : SUMI
@@ -174,6 +174,19 @@ export default function TeeArt({ product, color, view = 'front', className = '' 
   const Print = PRINTS[product.art]
   const dots = `dots-${uid}`
   const clip = `clip-${uid}`
+
+  if (printOnly) {
+    return (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="110 84 180 190" width="540" height="570">
+        <defs>
+          <pattern id={dots} width="8" height="8" patternUnits="userSpaceOnUse">
+            <circle cx="4" cy="4" r="2.2" fill={ACCENT} />
+          </pattern>
+        </defs>
+        {Print && <Print ink={ink} shirt={color.hex} back={false} dots={dots} />}
+      </svg>
+    )
+  }
 
   return (
     <svg

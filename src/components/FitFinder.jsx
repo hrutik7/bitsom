@@ -99,6 +99,9 @@ export default function FitFinder({
                 />
                 {source === 'manual' ? (
                   <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2">
+                      <NumberField label="Height" value={heightCm} onChange={setHeightCm} />
+                    </div>
                     {MEASURES.map(([k, label]) => (
                       <NumberField
                         key={k}

@@ -16,7 +16,7 @@ const RANK = ['in range', 'tight', 'loose', 'strain']
 // A BODY chart value is the body the size is cut for, so the brand's own ease is already
 // inside it. Adding stretch or our own ease on top would count it twice. Instead we assume
 // a body that exactly matches the chart gets mid-band ease, and offset from there.
-const BODY_CHART_EASE = (THRESHOLDS.tight + THRESHOLDS['in range']) / 2
+export const BODY_CHART_EASE = (THRESHOLDS.tight + THRESHOLDS['in range']) / 2
 
 export function classify(ease) {
   if (ease <= THRESHOLDS.strain) return 'strain'
