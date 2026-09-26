@@ -1,0 +1,37 @@
+[
+  {
+    "id": "mens-tee",
+    "name": "Men's regular tee",
+    "kind": "garment",
+    "sizes": [
+      { "size": "S", "chest": 96, "waist": 92, "hip": 96, "length": 70 },
+      { "size": "M", "chest": 102, "waist": 98, "hip": 102, "length": 72 },
+      { "size": "L", "chest": 108, "waist": 104, "hip": 108, "length": 74 },
+      { "size": "XL", "chest": 116, "waist": 112, "hip": 116, "length": 76 },
+      { "size": "XXL", "chest": 124, "waist": 120, "hip": 124, "length": 78 }
+    ]
+  },
+  {
+    "id": "womens-fitted-top",
+    "name": "Women's fitted top",
+    "kind": "body",
+    "sizes": [
+      { "size": "XS", "chest": 80, "waist": 62, "hip": 88, "length": 60 },
+      { "size": "S", "chest": 84, "waist": 66, "hip": 92, "length": 62 },
+      { "size": "M", "chest": 88, "waist": 70, "hip": 96, "length": 64 },
+      { "size": "L", "chest": 94, "waist": 76, "hip": 102, "length": 66 },
+      { "size": "XL", "chest": 100, "waist": 82, "hip": 108, "length": 68 }
+    ]
+  },
+  {
+    "id": "unisex-slim-polo",
+    "name": "Unisex slim polo",
+    "kind": "garment",
+    "sizes": [
+      { "size": "S", "chest": 92, "waist": 86, "hip": 92, "length": 68 },
+      { "size": "M", "chest": 98, "waist": 92, "hip": 98, "length": 70 },
+      { "size": "L", "chest": 104, "waist": 98, "hip": 104, "length": 72 },
+      { "size": "XL", "chest": 110, "waist": 104, "hip": 110, "length": 74 }
+    ]
+  }
+]

@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  background: var(--color-slate-950);
+  color: var(--color-slate-200);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+}
