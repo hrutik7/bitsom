@@ -29,10 +29,13 @@ export function Segmented({ value, options, onChange }) {
   )
 }
 
-export function NumberField({ label, value, onChange, suffix = 'cm' }) {
+export function NumberField({ label, value, onChange, suffix = 'cm', hint }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-sm text-slate-400">{label}</span>
+      <span className="mb-1.5 flex items-baseline justify-between text-sm text-slate-400">
+        {label}
+        {hint && <span className="text-xs text-slate-500">{hint}</span>}
+      </span>
       <div className="flex items-center rounded-lg bg-slate-900 ring-1 ring-slate-800 focus-within:ring-orange-500">
         <input
           type="number"

@@ -1,4 +1,29 @@
 @import "tailwindcss";
+@import "@fontsource/dela-gothic-one";
+
+/* Shop theme. The fit components are written against Tailwind's slate (neutrals) and
+   orange (the single accent); remapping those scales gives them the shop's warm ink and
+   vermilion without touching their markup. */
+@theme {
+  --font-display: "Dela Gothic One", ui-sans-serif, system-ui, sans-serif;
+
+  --color-slate-50: #f8f6f1;
+  --color-slate-100: #f1eee7;
+  --color-slate-200: #e6e2d8;
+  --color-slate-300: #cfcac0;
+  --color-slate-400: #a29e96;
+  --color-slate-500: #7c7973;
+  --color-slate-600: #5b5955;
+  --color-slate-700: #3c3b38;
+  --color-slate-800: #28272a;
+  --color-slate-900: #19191c;
+  --color-slate-950: #0e0e10;
+
+  --color-orange-300: #ffb39a;
+  --color-orange-400: #ff6b40;
+  --color-orange-500: #ff4a1c;
+  --color-orange-600: #e0390f;
+}
 
 html,
 body,
@@ -20,4 +45,11 @@ input[type='number']::-webkit-outer-spin-button {
 }
 input[type='number'] {
   -moz-appearance: textfield;
+}
+
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
 }

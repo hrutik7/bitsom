@@ -1,219 +1,175 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import products from './data/products.json'
 import sizeCharts from './data/sizeCharts.json'
-import { computeFit, STRETCH, THRESHOLDS } from './lib/fit'
-import { CLASS_STYLE } from './lib/classes'
-import BodyFigure from './components/BodyFigure'
-import EaseTable from './components/EaseTable'
-import SizeChartEditor from './components/SizeChartEditor'
-import { NumberField, Section, Segmented, Select } from './components/ui'
+import { toCm, useBodyInputs } from './hooks/useBodyInputs'
+import { computeFit } from './lib/fit'
+import FitFinder from './components/FitFinder'
+import BuyBox from './components/shop/BuyBox'
+import ProductCard from './components/shop/ProductCard'
+import ProductGallery from './components/shop/ProductGallery'
+import { AnnouncementBar, ShopFooter, ShopHeader, Toast } from './components/shop/ShopChrome'
 
-const toCm = (v) => (v === '' || v == null ? NaN : Number(v))
-const toEditable = (sizes) => sizes.map((s) => ({ ...s }))
+// A product's chart as the shopper currently sees it: catalogue data plus any edits made in
+// the finder's "Product data" panel.
+function chartFor(product, chartEdits) {
+  const base = sizeCharts.find((c) => c.id === product.chartId)
+  const edit = chartEdits[product.id]
+  return { kind: edit?.kind ?? base.kind, designEase: base.designEase ?? 0, rows: edit?.rows ?? base.sizes }
+}
 
-const FABRIC_LABELS = { cotton: 'Cotton', 'cotton-elastane': 'Cotton–elastane', jersey: 'Jersey' }
+function toFitChart(chart) {
+  const sizes = chart.rows
+    .filter((r) => String(r.size).trim() !== '')
+    .map((r) => ({
+      size: String(r.size).trim(),
+      chest: toCm(r.chest),
+      waist: toCm(r.waist),
+      hip: toCm(r.hip),
+      length: toCm(r.length),
+    }))
+  return { kind: chart.kind, designEase: chart.designEase, sizes }
+}
 
 export default function App() {
-  const [source, setSource] = useState('manual')
-  const [manual, setManual] = useState({ chest: '96', waist: '88', hip: '98', torsoLength: '52' })
-  const [heightCm, setHeightCm] = useState('175')
-  const [fabric, setFabric] = useState('cotton')
-  const [chartId, setChartId] = useState(sizeCharts[0].id)
-  const [chartKind, setChartKind] = useState(sizeCharts[0].kind)
-  const [chartRows, setChartRows] = useState(() => toEditable(sizeCharts[0].sizes))
-  const [preview, setPreview] = useState({ result: null, index: null })
+  const inputs = useBodyInputs()
+  const [productId, setProductId] = useState(products[0].id)
+  const [colorByProduct, setColorByProduct] = useState({})
+  const [sizeByProduct, setSizeByProduct] = useState({})
+  const [chartEdits, setChartEdits] = useState({})
+  const [fabricEdits, setFabricEdits] = useState({})
+  const [finderOpen, setFinderOpen] = useState(false)
+  const [profileSaved, setProfileSaved] = useState(false)
+  const [bag, setBag] = useState([])
+  const [toast, setToast] = useState(null)
+  const [sizeHint, setSizeHint] = useState(null)
+  const toastTimer = useRef(null)
 
-  const loadChart = (id) => {
-    const c = sizeCharts.find((x) => x.id === id)
-    setChartId(id)
-    setChartKind(c.kind)
-    setChartRows(toEditable(c.sizes))
+  const product = products.find((p) => p.id === productId)
+  const color = product.colors.find((c) => c.id === colorByProduct[product.id]) ?? product.colors[0]
+  const chart = chartFor(product, chartEdits)
+  const fabric = fabricEdits[product.id] ?? product.fabric
+
+  // One body, every product: the fit for each item in the catalogue.
+  const fits = useMemo(() => {
+    if (!inputs.body) return {}
+    return Object.fromEntries(
+      products.map((p) => [
+        p.id,
+        computeFit({ body: inputs.body, chart: toFitChart(chartFor(p, chartEdits)), fabric: fabricEdits[p.id] ?? p.fabric }),
+      ]),
+    )
+  }, [inputs.body, chartEdits, fabricEdits])
+
+  const fit = fits[product.id] ?? null
+  const shownFit = profileSaved ? fit : null
+  const selectedSize = sizeByProduct[product.id] ?? shownFit?.recommended ?? null
+
+  const say = (message) => {
+    clearTimeout(toastTimer.current)
+    setToast(message)
+    toastTimer.current = setTimeout(() => setToast(null), 2600)
   }
 
-  // Vision path plugs in here; until then only manual measurements produce a body.
-  const body = useMemo(() => {
-    if (source !== 'manual') return null
-    return Object.fromEntries(Object.entries(manual).map(([k, v]) => [k, { cm: toCm(v), pm: 0 }]))
-  }, [source, manual])
+  const openProduct = (id) => {
+    setProductId(id)
+    setSizeHint(null)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
-  const result = useMemo(() => {
-    if (!body) return null
-    const sizes = chartRows
-      .filter((r) => String(r.size).trim() !== '')
-      .map((r) => ({
-        size: String(r.size).trim(),
-        chest: toCm(r.chest),
-        waist: toCm(r.waist),
-        hip: toCm(r.hip),
-        length: toCm(r.length),
-      }))
-    return computeFit({ body, chart: { kind: chartKind, sizes }, fabric })
-  }, [body, chartRows, chartKind, fabric])
+  const addToBag = () => {
+    if (!selectedSize) {
+      setSizeHint('Pick a size first, or let Fitline find it.')
+      return
+    }
+    setBag((b) => [...b, { id: product.id, size: selectedSize, color: color.id }])
+    say(`Added ${product.name} · ${selectedSize} · ${color.name}`)
+  }
 
-  const selectedIndex =
-    result && preview.result === result ? preview.index : result?.recommendedIndex ?? null
-  const selected = result && selectedIndex != null ? result.sizes[selectedIndex] : null
+  const applyFit = (size) => {
+    setSizeByProduct((s) => ({ ...s, [product.id]: size }))
+    setProfileSaved(true)
+    setFinderOpen(false)
+    setSizeHint(null)
+    say(`Size ${size} selected. Your fit now shows on every product.`)
+  }
+
+  const closeFinder = useCallback(() => setFinderOpen(false), [])
+  const updateChart = (patch) =>
+    setChartEdits((e) => ({ ...e, [product.id]: { kind: chart.kind, rows: chart.rows, ...patch } }))
+
+  const others = products.filter((p) => p.id !== product.id)
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-10 lg:px-10 lg:py-14">
-      <header className="mb-12 flex items-baseline justify-between">
-        <div className="flex items-baseline gap-3">
-          <span className="h-2.5 w-2.5 translate-y-[-2px] rounded-full bg-orange-500" />
-          <h1 className="text-xl font-semibold tracking-tight text-white">Fitline</h1>
-          <span className="hidden text-sm text-slate-500 sm:inline">
-            body × size chart × fabric → the size that fits
-          </span>
+    <>
+      <AnnouncementBar />
+      <ShopHeader bagCount={bag.length} profileSaved={profileSaved} onFit={() => setFinderOpen(true)} />
+
+      <main className="mx-auto max-w-7xl px-5 lg:px-10">
+        <nav className="py-5 text-xs text-slate-500">
+          Home <span className="mx-1.5">/</span> {product.type}s <span className="mx-1.5">/</span>
+          <span className="text-slate-300">{product.name}</span>
+        </nav>
+
+        <div className="grid gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
+          <ProductGallery key={product.id} product={product} color={color} />
+          <BuyBox
+            product={product}
+            color={color}
+            onColor={(id) => setColorByProduct((c) => ({ ...c, [product.id]: id }))}
+            chart={chart}
+            selectedSize={selectedSize}
+            onSize={(s) => {
+              setSizeByProduct((m) => ({ ...m, [product.id]: s }))
+              setSizeHint(null)
+            }}
+            fit={shownFit}
+            onFindSize={() => setFinderOpen(true)}
+            onAdd={addToBag}
+            sizeHint={sizeHint}
+          />
         </div>
-        <span className="text-xs text-slate-600">runs entirely on-device</span>
-      </header>
 
-      <div className="grid gap-14 lg:grid-cols-[400px_1fr]">
-        {/* Inputs */}
-        <aside className="space-y-10">
-          <Section title="Body">
-            <Segmented
-              value={source}
-              onChange={setSource}
-              options={[
-                { value: 'manual', label: 'Manual measurements' },
-                { value: 'photo', label: 'From photo' },
-              ]}
-            />
-            {source === 'manual' ? (
-              <div className="grid grid-cols-2 gap-4">
-                <NumberField label="Chest" value={manual.chest} onChange={(v) => setManual({ ...manual, chest: v })} />
-                <NumberField label="Waist" value={manual.waist} onChange={(v) => setManual({ ...manual, waist: v })} />
-                <NumberField label="Hip" value={manual.hip} onChange={(v) => setManual({ ...manual, hip: v })} />
-                <NumberField
-                  label="Torso length"
-                  value={manual.torsoLength}
-                  onChange={(v) => setManual({ ...manual, torsoLength: v })}
-                />
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <NumberField label="Your height" value={heightCm} onChange={setHeightCm} />
-                <div className="rounded-lg border border-dashed border-slate-700 px-4 py-8 text-center text-sm text-slate-500">
-                  Photo estimation is not wired up yet.
-                  <br />
-                  Use manual measurements for now.
-                </div>
-              </div>
-            )}
-          </Section>
-
-          <Section title="Fabric">
-            <Select
-              value={fabric}
-              onChange={setFabric}
-              options={Object.keys(STRETCH).map((k) => ({
-                value: k,
-                label: `${FABRIC_LABELS[k] ?? k}  ·  ×${STRETCH[k].toFixed(2)} stretch`,
-              }))}
-            />
-          </Section>
-
-          <Section
-            title="Size chart"
-            aside={
-              <Segmented
-                value={chartKind}
-                onChange={setChartKind}
-                options={[
-                  { value: 'garment', label: 'Garment' },
-                  { value: 'body', label: 'Body' },
-                ]}
+        <section className="mt-24">
+          <div className="flex items-end justify-between">
+            <h2 className="font-display text-3xl text-slate-50 uppercase">
+              Pair it with <span className="text-orange-500">一緒に</span>
+            </h2>
+            {profileSaved && <p className="hidden text-xs text-slate-500 sm:block">Sizes from your fit profile</p>}
+          </div>
+          <div className="mt-8 grid grid-cols-2 gap-5 md:grid-cols-3">
+            {others.map((p) => (
+              <ProductCard
+                key={p.id}
+                product={p}
+                yourSize={profileSaved ? fits[p.id]?.recommended : null}
+                onOpen={() => openProduct(p.id)}
               />
-            }
-          >
-            <Select
-              value={chartId}
-              onChange={loadChart}
-              options={sizeCharts.map((c) => ({ value: c.id, label: c.name }))}
-            />
-            <SizeChartEditor rows={chartRows} onChange={setChartRows} />
-            <p className="text-xs leading-relaxed text-slate-500">
-              {chartKind === 'garment'
-                ? 'Values are the garment’s own circumferences, flat width × 2.'
-                : 'Values are the body each size is cut for; the brand’s ease is already inside them.'}
-            </p>
-          </Section>
-        </aside>
+            ))}
+          </div>
+        </section>
+      </main>
 
-        {/* Result */}
-        <main className="min-w-0">
-          {!result ? (
-            <EmptyState text="Add measurements to see a recommendation." />
-          ) : result.recommended == null ? (
-            <EmptyState text="No size has both a chart value and a body measurement for any region." />
-          ) : (
-            <div className="space-y-12">
-              <div className="grid items-center gap-10 md:grid-cols-[1fr_minmax(0,420px)]">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
-                    Recommended size
-                  </p>
-                  <p className="mt-2 text-[7rem] leading-none font-semibold tracking-tight text-orange-500">
-                    {result.recommended}
-                  </p>
-                  <p className="mt-6 max-w-sm text-lg leading-snug text-slate-200">{result.reason}</p>
-                  {result.notes.map((n) => (
-                    <p key={n} className="mt-4 max-w-sm text-sm leading-relaxed text-slate-500">
-                      {n}
-                    </p>
-                  ))}
-                  <Legend />
-                </div>
-                <div>
-                  <BodyFigure
-                    sizeResult={selected}
-                    drivingRegion={selectedIndex === result.recommendedIndex ? result.drivingRegion : null}
-                  />
-                  <p className="mt-2 text-center text-xs text-slate-500">
-                    {selectedIndex === result.recommendedIndex
-                      ? `Showing ${selected.size}, the recommendation`
-                      : `Previewing ${selected.size || '—'}`}
-                  </p>
-                </div>
-              </div>
+      <ShopFooter />
 
-              <Section title="Ease by size and region">
-                <EaseTable
-                  result={result}
-                  selectedIndex={selectedIndex}
-                  onSelect={(index) => setPreview({ result, index })}
-                />
-              </Section>
-            </div>
-          )}
-        </main>
-      </div>
-    </div>
-  )
-}
-
-function Legend() {
-  const entries = [
-    ['strain', `≤ ${THRESHOLDS.strain}`],
-    ['tight', `≤ ${THRESHOLDS.tight}`],
-    ['in range', `≤ ${THRESHOLDS['in range']}`],
-    ['loose', `> ${THRESHOLDS['in range']}`],
-  ]
-  return (
-    <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-400">
-      {entries.map(([cls, range]) => (
-        <span key={cls} className="inline-flex items-center gap-2">
-          <span className={`h-2 w-2 rounded-full ${CLASS_STYLE[cls].dot}`} />
-          {cls} <span className="text-slate-600">{range} cm</span>
-        </span>
-      ))}
-    </div>
-  )
-}
-
-function EmptyState({ text }) {
-  return (
-    <div className="flex h-80 items-center justify-center rounded-xl border border-dashed border-slate-800 text-sm text-slate-500">
-      {text}
-    </div>
+      <FitFinder
+        open={finderOpen}
+        onClose={closeFinder}
+        product={product}
+        inputs={inputs}
+        chart={chart}
+        chartEdited={product.id in chartEdits || product.id in fabricEdits}
+        onChartRows={(rows) => updateChart({ rows })}
+        onChartKind={(kind) => updateChart({ kind })}
+        onResetChart={() => {
+          setChartEdits(({ [product.id]: _c, ...rest }) => rest)
+          setFabricEdits(({ [product.id]: _f, ...rest }) => rest)
+        }}
+        fabric={fabric}
+        onFabric={(f) => setFabricEdits((e) => ({ ...e, [product.id]: f }))}
+        result={fit}
+        onApply={applyFit}
+      />
+      <Toast message={toast} />
+    </>
   )
 }

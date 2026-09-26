@@ -1,0 +1,75 @@
+[
+  {
+    "id": "midnight-ronin",
+    "name": "Midnight Ronin",
+    "jp": "真夜中の浪人",
+    "type": "Oversized Tee",
+    "drop": "Drop 04",
+    "art": "ronin",
+    "chartId": "oversized-tee",
+    "fabric": "cotton",
+    "material": "100% combed cotton, 240 GSM heavyweight",
+    "print": "Puff print front, screen print back",
+    "price": 1299,
+    "mrp": 1799,
+    "colors": [
+      { "id": "sumi", "name": "Sumi Black", "hex": "#151517" },
+      { "id": "bone", "name": "Bone", "hex": "#e8e1d2" },
+      { "id": "matcha", "name": "Matcha", "hex": "#7f8c6c" }
+    ]
+  },
+  {
+    "id": "kaiju-club",
+    "name": "Kaiju Club",
+    "jp": "怪獣クラブ",
+    "type": "Oversized Tee",
+    "drop": "Drop 04",
+    "art": "kaiju",
+    "chartId": "oversized-tee",
+    "fabric": "cotton",
+    "material": "100% combed cotton, 240 GSM heavyweight",
+    "print": "Screen print front and back",
+    "price": 1199,
+    "mrp": 1599,
+    "colors": [
+      { "id": "bone", "name": "Bone", "hex": "#e8e1d2" },
+      { "id": "sumi", "name": "Sumi Black", "hex": "#151517" }
+    ]
+  },
+  {
+    "id": "neko-ramen",
+    "name": "Neko Ramen",
+    "jp": "ねこラーメン",
+    "type": "Regular Fit Tee",
+    "drop": "Core",
+    "art": "neko",
+    "chartId": "mens-tee",
+    "fabric": "jersey",
+    "material": "Cotton jersey, 180 GSM",
+    "print": "Water-based print front",
+    "price": 799,
+    "mrp": 999,
+    "colors": [
+      { "id": "rust", "name": "Rust", "hex": "#9a4a2c" },
+      { "id": "sumi", "name": "Sumi Black", "hex": "#151517" }
+    ]
+  },
+  {
+    "id": "sakura-static",
+    "name": "Sakura Static",
+    "jp": "桜ノイズ",
+    "type": "Fitted Baby Tee",
+    "drop": "Drop 03",
+    "art": "sakura",
+    "chartId": "womens-fitted-top",
+    "fabric": "cotton-elastane",
+    "material": "Cotton–elastane rib, 200 GSM",
+    "print": "Screen print front",
+    "price": 899,
+    "mrp": 1199,
+    "colors": [
+      { "id": "bone", "name": "Bone", "hex": "#e8e1d2" },
+      { "id": "sumi", "name": "Sumi Black", "hex": "#151517" }
+    ]
+  }
+]
